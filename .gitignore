@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Environment variables (IMPORTANT: Keep secrets safe!)
+.env
+.env.local
+server/.env
+client/.env.local
+
+# Build outputs
+client/dist/
+build/
+dist/
+
+# Database files
+server/captions.db
+*.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
