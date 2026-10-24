@@ -1,122 +1,129 @@
 # Image Caption Generator
 
-An AI-powered full-stack application that turns uploaded images into polished captions in seconds. Choose a tone, select a language, and generate captions for social posts, products, accessibility, and more.
+A focused full-stack application that creates polished captions from uploaded photos using Groq vision.
 
-**[Live app](https://image-caption-generator-2-45my.onrender.com/)** · **[GitHub repository](https://github.com/Aishvaryasaii05/Image-caption-generator)**
+## Tech Stack
 
-## Highlights
+- **Frontend**: React + Vite + Tailwind CSS
+- **Backend**: Node.js + Express
+- **Authentication**: Clerk with Google OAuth
+- **AI**: Groq vision API (`qwen/qwen3.8-27b`)
+- **Database**: SQLite
 
-- Generate captions from JPG, PNG, and WEBP images up to 5 MB
-- Short, detailed, funny, Instagram, professional, and alt-text styles
-- English, Telugu, and Hindi output
-- Guest generation with rate limiting
-- Clerk authentication and private caption history
-- Responsive dark/light interface
-- Full-stack deployment with separate frontend and API services
+## Features
 
-## Visual preview
+- Upload images (JPG, PNG, WEBP up to 5MB)
+- Generate captions in multiple styles
+- Support for English, Telugu, and Hindi languages
+- User authentication with Clerk and Google
+- Caption history for signed-in users
+- Dark/Light theme toggle
+- Rate limiting for guest users
 
-| AI-assisted captioning | Audience-focused workflows | Product and accessibility use cases |
-| --- | --- | --- |
-| ![AI captioning](client/public/images/caption-ai-collaboration.png) | ![Creators and influencers](client/public/images/audiences/creators-and-influencers.png) | ![E-commerce and retail](client/public/images/audiences/ecommerce-retail.jpg) |
+## Project Structure
 
-## Tech stack
-
-- **Frontend:** React, Vite, Tailwind CSS, React Router
-- **Backend:** Node.js, Express.js, Multer, CORS
-- **AI:** Groq Vision API with `qwen/qwen3.8-27b`
-- **Authentication:** Clerk
-- **Database:** SQLite with `better-sqlite3`
-- **Deployment:** Render
-
-## Project structure
-
-```text
+```
 image-caption-generator/
-├── client/             # React + Vite frontend
-│   ├── public/         # Brand assets and visual content
-│   └── src/            # Components, pages, and styles
-├── server/             # Express API and Groq integration
-├── package.json        # Workspace scripts
-└── netlify.toml        # Static frontend build configuration
+├── client/          # React + Vite frontend
+│   ├── public/images # Frontend image assets
+│   └── src/          # Pages, components, and styles
+├── server/           # Express API, Groq integration, and SQLite setup
+├── package.json      # Workspace scripts and metadata
+├── package-lock.json # Single workspace lockfile
+└── netlify.toml      # Frontend deployment configuration
 ```
 
-## Run locally
+## Setup Instructions
 
 ### Prerequisites
 
 - Node.js 20 or newer
-- A Groq API key
-- A Clerk application with publishable and secret keys
+- Groq API key
+- Clerk application with Google authentication enabled
 
-### Install
+### Installation
 
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-Create `client/.env.local`:
+2. Set up environment variables:
 
+Create `client/.env.local`:
 ```env
 VITE_API_URL=http://localhost:3000
-VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key
 ```
 
 Create `server/.env`:
-
 ```env
 GROQ_API_KEY=your_groq_api_key
 GROQ_MODEL=qwen/qwen3.8-27b
-CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-CLERK_SECRET_KEY=your_clerk_secret_key
+CLERK_SECRET_KEY=sk_test_your_clerk_secret_key
 FRONTEND_URL=http://localhost:5173
 PORT=3000
 ```
 
-Keep real secrets in local or hosting environment variables. Never commit `.env` files or expose server secrets with a `VITE_` prefix.
+Keep `GROQ_API_KEY` in `server/.env` only. Do not add it to a client environment variable or commit the file.
 
-### Start the app
+### Configure Google sign-in
 
+1. In the Clerk Dashboard, open **Configure → SSO connections → Google** and enable Google.
+2. For local development, Clerk's development Google connection can be used immediately. For production, configure your own Google OAuth credentials in Clerk and add the deployed domain to the allowed origins.
+3. Copy the Clerk publishable key to `client/.env.local` and the Clerk secret key to `server/.env`. Never expose the secret key in a `VITE_` variable.
+4. Start the app and select **Continue with Google**.
+
+### Running the Application
+
+Start both frontend and backend:
 ```bash
 npm run dev
 ```
 
 - Frontend: http://localhost:5173
-- API: http://localhost:3000
+- Backend API: http://localhost:3000
 - Health check: http://localhost:3000/api/health
 
-## API endpoints
+## API Endpoints
 
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `POST` | `/api/caption` | Generate a caption from an uploaded image |
-| `GET` | `/api/history` | Read the signed-in user’s caption history |
-| `DELETE` | `/api/history/:id` | Delete a saved caption |
-| `GET` | `/api/health` | Check API availability |
+- `POST /api/caption` - Generate caption from image
+- `GET /api/history` - Get user's caption history
+- `DELETE /api/history/:id` - Delete a saved caption
+- `GET /api/health` - Health check endpoint
+
+## Environment Variables
+
+| Variable | Used by | Required | Default |
+|----------|---------|----------|---------|
+| `VITE_API_URL` | Client | No | `http://localhost:3000` |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Client | Yes | — |
+| `GROQ_API_KEY` | Server | Yes | — |
+| `GROQ_MODEL` | Server | No | `qwen/qwen3.8-27b` |
+| `CLERK_SECRET_KEY` | Server | Yes | — |
+| `FRONTEND_URL` | Server | No | `http://localhost:5173` |
+| `PORT` | Server | No | `3000` |
+| `DB_PATH` | Server | No | `server/captions.db` |
 
 ## Deployment
 
-The production app uses two connected Render services:
+### Frontend (Netlify)
 
-1. **Backend Web Service**
-   - Root directory: `server`
-   - Build command: `npm install`
-   - Start command: `npm start`
+1. Connect the repository to Netlify.
+2. Use the root `netlify.toml` configuration.
+3. Set `VITE_API_URL` to the deployed backend URL.
+4. Set `VITE_CLERK_PUBLISHABLE_KEY`.
 
-2. **Frontend Static Site**
-   - Root directory: `client`
-   - Build command: `npm install && npm run build`
-   - Publish directory: `dist`
+### Backend (Render)
 
-Set `VITE_API_URL` on the frontend to the backend URL and set `FRONTEND_URL` on the backend to the frontend URL.
+1. Create Web Service
+2. Set `CLERK_SECRET_KEY`, `GROQ_API_KEY`, and `FRONTEND_URL`
+3. Attach persistent disk for SQLite data
+4. Set `DB_PATH` to disk mount path (e.g., `/var/data/captions.db`)
 
-## Security
+## Security Notes
 
-- Never commit API keys or `.env` files.
-- Keep `GROQ_API_KEY` and `CLERK_SECRET_KEY` on the server only.
-- Use `VITE_CLERK_PUBLISHABLE_KEY` only for the public frontend key.
-- Review AI-generated captions before publishing them.
-
-## License
-
-This project is available under the MIT License.
+- Never commit `.env` files
+- Never share the Clerk secret key
+- Keep API keys on server-side only
+- Do not prefix secrets with `VITE_` (exposes to browser)

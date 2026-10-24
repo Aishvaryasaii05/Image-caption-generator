@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { SignInButton, useAuth } from '@clerk/react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../lib/auth'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 function History() {
   const { getToken, isLoaded, isSignedIn } = useAuth()
+  const navigate = useNavigate()
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -83,15 +85,9 @@ function History() {
         <div className="rounded-2xl border border-gray-700 bg-gray-900 px-6 py-12 text-center">
           <p className="text-lg font-semibold text-white">Your captions are private to your account.</p>
           <p className="mt-2 text-gray-400">Sign in to view and manage your caption history.</p>
-          <SignInButton
-            mode="modal"
-            fallbackRedirectUrl="/history"
-            signUpFallbackRedirectUrl="/history"
-          >
-            <button type="button" className="accent-button mt-6 rounded-lg px-5 py-3 font-semibold">
-              Sign in to view history
-            </button>
-          </SignInButton>
+          <button type="button" onClick={() => navigate('/sign-in')} className="accent-button mt-6 rounded-lg px-5 py-3 font-semibold">
+            Sign in to view history
+          </button>
         </div>
       )}
 

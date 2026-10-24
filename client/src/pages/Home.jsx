@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
-import { useAuth } from '@clerk/react'
-import { useState } from 'react'
+import { useAuth } from '../lib/auth'
+import { useEffect, useRef, useState } from 'react'
 import ImageUpload from '../components/ImageUpload'
 import CaptionForm from '../components/CaptionForm'
 import CaptionResult from '../components/CaptionResult'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const AUDIENCE_IMAGE_FALLBACK = '/images/audiences/small-business-owners.jpg'
 
 const AUDIENCE_SEGMENTS = [
   {
@@ -17,9 +18,9 @@ const AUDIENCE_SEGMENTS = [
     description:
       'Turn visuals into social copy, searchable image-library labels, and a starting point for timely editorial posts.',
     points: [
-      'Social media: Draft Instagram, X, or LinkedIn captions for a graphic or photo.',
-      'Digital asset management: Add descriptive captions and keywords to help teams find image-library files.',
-      'News & journalism: Start with a neutral who, what, and where draft, then verify details before publishing.',
+      'Posting a weekend photo: create a warm Instagram caption in a few seconds.',
+      'Organising a content folder: add searchable descriptions to campaign images.',
+      'Preparing a client post: turn a behind-the-scenes photo into a clear first draft.',
     ],
   },
   {
@@ -31,9 +32,9 @@ const AUDIENCE_SEGMENTS = [
     description:
       'For online shopping, image captions can support catalog management, product discovery, and a more accessible shopping experience.',
     points: [
-      'Product descriptions: Draft clear copy and visible color or style details from a product photo.',
-      'Visual search: Suggest descriptive tags shoppers might use to find similar items.',
-      'Alt text: Describe product images for screen-reader users and accessible catalogs.',
+      'Adding a new product: draft a short description from a shoe, dress, or gadget photo.',
+      'Updating an online shop: suggest useful tags such as colour, material, and style.',
+      'Improving accessibility: create helpful alt text for product photos.',
     ],
   },
   {
@@ -45,8 +46,9 @@ const AUDIENCE_SEGMENTS = [
     description:
       'Give workplace photos and process screenshots useful context for internal communications, company pages, and employee resources.',
     points: [
-      'Internal event recaps: Draft newsletter or LinkedIn copy for team events and conferences.',
-      'Training manuals: Add context to software or hardware screenshots; have a subject-matter expert verify each step.',
+      'After a team event: turn a group photo into a friendly internal newsletter update.',
+      'For a training guide: describe a software screenshot before a teammate reviews it.',
+      'Sharing a company update: prepare a professional LinkedIn caption from an office photo.',
     ],
   },
   {
@@ -58,9 +60,9 @@ const AUDIENCE_SEGMENTS = [
     description:
       'Use captions to add non-diagnostic context to healthcare visuals. A qualified clinician must review medical descriptions before use.',
     points: [
-      'Radiology education: Draft plain-language context for X-ray, MRI, or CT images; this is not a diagnostic report.',
-      'Dermatology: Add consistent descriptive context to skin images; clinicians assess and document changes.',
-      'Accessibility: Write alt text for medical charts and diagrams, then review clinical terms before sharing.',
+      'For a patient handout: draft plain-language context for a medical diagram.',
+      'For a class presentation: describe an anatomy illustration before a clinician reviews it.',
+      'For accessibility: create alt text for a chart or healthcare presentation.',
     ],
   },
   {
@@ -72,9 +74,9 @@ const AUDIENCE_SEGMENTS = [
     description:
       'Help a small business turn everyday photos into clear, welcoming posts that introduce products, share updates, and connect with customers.',
     points: [
-      'Write friendly captions for products, services, and new arrivals.',
-      'Share promotions, shop updates, and behind-the-scenes moments.',
-      'Keep your business social pages active while you focus on customers.',
+      'After photographing a new service: write a welcoming post for local customers.',
+      'During a busy day: turn a shop update or promotion into social copy quickly.',
+      'At the end of the week: caption a behind-the-scenes photo while you focus on customers.',
     ],
   },
   {
@@ -86,9 +88,9 @@ const AUDIENCE_SEGMENTS = [
     description:
       'Create captions for class projects, campus events, personal photos, and everyday memories. Start with a draft and make it sound like you.',
     points: [
-      'Add context to project images, presentations, and portfolios.',
-      'Write natural captions for campus life, trips, and celebrations.',
-      'Choose a style and language that fit the moment you want to share.',
+      'For a class project: describe a research image or presentation slide clearly.',
+      'For a campus memory: write a natural caption for a trip, event, or celebration.',
+      'For a personal post: choose a tone and language that match the moment.',
     ],
   },
 ]
@@ -142,7 +144,56 @@ function Home() {
   const [style, setStyle] = useState('short')
   const [language, setLanguage] = useState('english')
   const [workflowStep, setWorkflowStep] = useState(0)
-  const [selectedAudience, setSelectedAudience] = useState(null)
+  const [audienceIndex, setAudienceIndex] = useState(0)
+  const [audiencePaused, setAudiencePaused] = useState(false)
+  const [audienceHovering, setAudienceHovering] = useState(false)
+  const [audienceDetails, setAudienceDetails] = useState(null)
+  const audienceTouchStart = useRef(null)
+
+  useEffect(() => {
+    // Keep the moving carousel from showing an empty frame while its next image loads.
+    AUDIENCE_SEGMENTS.forEach(({ image }) => {
+      const preloadImage = new Image()
+      preloadImage.src = image
+    })
+  }, [])
+
+  useEffect(() => {
+    if (audiencePaused || audienceHovering || audienceDetails) return undefined
+
+    const interval = window.setInterval(() => {
+      setAudienceIndex((currentIndex) => (currentIndex + 1) % AUDIENCE_SEGMENTS.length)
+    }, 4000)
+
+    return () => window.clearInterval(interval)
+  }, [audiencePaused, audienceHovering, audienceDetails])
+
+  const changeAudience = (direction) => {
+    setAudienceIndex((currentIndex) => (currentIndex + direction + AUDIENCE_SEGMENTS.length) % AUDIENCE_SEGMENTS.length)
+  }
+
+  const openAudienceDetails = (segment) => {
+    setAudienceDetails(segment)
+    setAudiencePaused(true)
+  }
+
+  const closeAudienceDetails = () => {
+    setAudienceDetails(null)
+  }
+
+  const handleAudienceKeyDown = (event) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      changeAudience(-1)
+    }
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      changeAudience(1)
+    }
+    if (event.key === 'Escape' && audienceDetails) {
+      closeAudienceDetails()
+    }
+  }
 
   const handleImageSelect = (file, preview) => {
     setImage(file)
@@ -219,15 +270,15 @@ function Home() {
       <section id="generator" className="scroll-section mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24 lg:px-8">
         <div className="mx-auto mb-10 max-w-3xl text-center">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.28em] text-gray-400">Your photo. The right words.</p>
-          <h1 className="mb-5 text-4xl font-bold tracking-tight text-white sm:text-6xl">
+          <h1 className="hero-title mb-5 text-4xl font-bold tracking-tight text-white sm:text-6xl">
             Image Caption Generator
           </h1>
-          <p className="mx-auto max-w-2xl text-base leading-7 text-gray-400 sm:text-lg">
+          <p className="hero-subtitle mx-auto max-w-2xl text-base leading-7 text-gray-400 sm:text-lg">
             Turn any image into a caption worth sharing. Choose your tone, pick a language, and let AI find the words.
           </p>
         </div>
 
-        <div className="mx-auto max-w-3xl rounded-2xl border border-gray-700 bg-gray-900 p-4 shadow-2xl shadow-black/30 sm:p-8">
+        <div className="generator-card mx-auto max-w-3xl rounded-2xl border border-gray-700 bg-gray-900 p-4 shadow-2xl shadow-black/30 sm:p-8">
           {isLoaded && !isSignedIn && (
             <div className="generator-start-card mb-5">
               <div className="generator-start-icon" aria-hidden="true">
@@ -418,15 +469,83 @@ function Home() {
           <p className="mx-auto mt-4 max-w-2xl text-center leading-7 text-gray-400">
             From social media and product catalogs to small businesses, workplace updates, healthcare education, school projects, and everyday moments, find words that fit.
           </p>
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {AUDIENCE_SEGMENTS.map((segment) => (
-              <AudienceCard
-                key={segment.id}
-                segment={segment}
-                active={selectedAudience?.id === segment.id}
-                onClick={() => setSelectedAudience((current) => current?.id === segment.id ? null : segment)}
+          <div
+            className="audience-carousel mt-12"
+            role="region"
+            aria-roledescription="carousel"
+            aria-label="Image caption use cases"
+            tabIndex="0"
+            onKeyDown={handleAudienceKeyDown}
+            onMouseEnter={() => setAudienceHovering(true)}
+            onMouseLeave={() => setAudienceHovering(false)}
+            onTouchStart={(event) => {
+              audienceTouchStart.current = event.changedTouches[0].clientX
+            }}
+            onTouchEnd={(event) => {
+              const startX = audienceTouchStart.current
+              const endX = event.changedTouches[0].clientX
+              if (startX !== null && Math.abs(endX - startX) > 45) {
+                changeAudience(endX < startX ? 1 : -1)
+              }
+              audienceTouchStart.current = null
+            }}
+          >
+            <div className="audience-carousel-toolbar">
+              <span className="audience-carousel-status" aria-live="polite">
+                {String(audienceIndex + 1).padStart(2, '0')} / {String(AUDIENCE_SEGMENTS.length).padStart(2, '0')}
+              </span>
+              <button
+                type="button"
+                className="audience-pause-button"
+                onClick={() => setAudiencePaused((paused) => !paused)}
+                aria-label={audiencePaused ? 'Play audience carousel' : 'Pause audience carousel'}
+                aria-pressed={audiencePaused}
+              >
+                {audiencePaused ? '▶' : 'Ⅱ'}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="audience-arrow audience-arrow-left"
+              onClick={() => changeAudience(-1)}
+              aria-label="Previous audience use case"
+            >
+              ‹
+            </button>
+
+            <div className="audience-slide-window" aria-live="polite">
+              <AudienceSlide
+                key={AUDIENCE_SEGMENTS[audienceIndex].id}
+                segment={AUDIENCE_SEGMENTS[audienceIndex]}
+                flipped={audienceDetails?.id === AUDIENCE_SEGMENTS[audienceIndex].id}
+                onExplore={() => openAudienceDetails(AUDIENCE_SEGMENTS[audienceIndex])}
+                onClose={closeAudienceDetails}
               />
-            ))}
+            </div>
+
+            <button
+              type="button"
+              className="audience-arrow audience-arrow-right"
+              onClick={() => changeAudience(1)}
+              aria-label="Next audience use case"
+            >
+              ›
+            </button>
+
+            <div className="audience-dots" role="tablist" aria-label="Choose an audience use case">
+              {AUDIENCE_SEGMENTS.map((segment, index) => (
+                <button
+                  key={segment.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={audienceIndex === index}
+                  aria-label={`Show ${segment.title}`}
+                  className={`audience-dot ${audienceIndex === index ? 'is-active' : ''}`}
+                  onClick={() => setAudienceIndex(index)}
+                />
+              ))}
+            </div>
           </div>
 
         </div>
@@ -515,7 +634,7 @@ function SectionHeading({ eyebrow, title }) {
   return (
     <div className="text-center">
       <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-gray-500">{eyebrow}</p>
-      <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{title}</h2>
+      <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">{title}</h2>
     </div>
   )
 }
@@ -529,42 +648,58 @@ function Feature({ title, text }) {
   )
 }
 
-function AudienceCard({ segment, active, onClick }) {
+function AudienceSlide({ segment, flipped, onExplore, onClose }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`audience-card ${active ? 'is-active' : ''}`}
-      aria-label={`${segment.title}: ${active ? 'show image' : 'show use cases'}`}
-      aria-pressed={active}
-    >
-      <div className="audience-card-inner">
-        <div className="audience-card-face audience-card-front">
-          <img className="audience-photo" src={segment.image} alt={segment.imageAlt} loading="lazy" decoding="async" />
-          <div className="p-5">
-            <h3 className="font-semibold text-white">{segment.title}</h3>
-            <p className="mt-1 text-sm text-gray-400">{segment.shortText}</p>
-            <p className="mt-3 text-xs font-medium text-gray-500">Select to explore</p>
-          </div>
+    <div className={`audience-slide-flip ${flipped ? 'is-flipped' : ''}`}>
+      <article className="audience-slide audience-slide-front">
+        <div className="audience-slide-copy">
+          <span className="audience-tag">{segment.title.split(' & ')[0]}</span>
+          <h3 className="audience-slide-title">{segment.title}</h3>
+          <p>{segment.shortText}</p>
+          <button type="button" className="audience-explore-button" onClick={onExplore}>
+            Select to Explore <span aria-hidden="true">›</span>
+          </button>
         </div>
-
-        <div className="audience-card-face audience-card-back">
-          <div className="audience-card-back-inner">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-gray-300">How they use it</p>
-            <h3 className="text-xl font-bold text-white">{segment.title}</h3>
-            <p className="mt-3 text-sm leading-6 text-gray-300">{segment.description}</p>
-            <ul className="mt-4 space-y-2 text-sm leading-5 text-gray-300">
-              {segment.points.map((point) => (
-                <li key={point} className="flex gap-2">
-                  <span className="mt-1 inline-block h-2 w-2 rounded-full bg-blue-400" aria-hidden="true" />
-                  <span>{point}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="audience-slide-image-wrap">
+          <img
+            className="audience-slide-image"
+            src={segment.image}
+            alt={segment.imageAlt}
+            loading="eager"
+            decoding="async"
+            onError={(event) => {
+              event.currentTarget.onerror = null
+              event.currentTarget.src = AUDIENCE_IMAGE_FALLBACK
+            }}
+          />
+          <div className="audience-slide-image-glow" aria-hidden="true" />
         </div>
+      </article>
+      <div className="audience-slide audience-slide-back">
+        <AudienceDetails segment={segment} onClose={onClose} />
       </div>
-    </button>
+    </div>
+  )
+}
+
+function AudienceDetails({ segment, onClose }) {
+  return (
+    <div className="audience-details" aria-labelledby="audience-details-title">
+      <div className="audience-details-heading">
+        <div>
+          <p className="audience-details-eyebrow">Everyday use</p>
+          <h3 id="audience-details-title">{segment.title}</h3>
+        </div>
+        <button type="button" className="audience-close-button" onClick={onClose} aria-label="Close use case details">×</button>
+      </div>
+      <p className="audience-details-description">{segment.description}</p>
+      <div className="audience-steps">
+        {segment.points.slice(0, 4).map((point) => (
+          <p key={point}>{point}</p>
+        ))}
+      </div>
+      <a className="audience-try-button" href="#generator" onClick={onClose}>Try it now <span aria-hidden="true">→</span></a>
+    </div>
   )
 }
 

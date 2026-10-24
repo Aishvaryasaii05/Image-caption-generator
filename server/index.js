@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import { clerkMiddleware, getAuth } from '@clerk/express'
+import { verifyToken } from '@clerk/backend'
 import dotenv from 'dotenv'
 import multer from 'multer'
 import { dirname, join } from 'path'
@@ -11,14 +11,15 @@ import { generateCaption } from './ai.js'
 const serverDirectory = dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: join(serverDirectory, '.env') })
 
-if (!process.env.CLERK_PUBLISHABLE_KEY || !process.env.CLERK_SECRET_KEY) {
-  throw new Error('Set CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY in server/.env before starting the server.')
-}
+const clerkSecretKey = process.env.CLERK_SECRET_KEY
 
 const app = express()
 const PORT = process.env.PORT || 3000
-
 app.set('trust proxy', 1)
+
+if (!clerkSecretKey) {
+  console.warn('CLERK_SECRET_KEY is not configured. The server will allow guest captions, but signed-in history requests will be unavailable.')
+}
 
 const db = initDatabase()
 const guestGenerationAttempts = new Map()
@@ -73,33 +74,33 @@ const corsOptions = {
 
 app.use(cors(corsOptions))
 app.use(express.json())
-app.use(clerkMiddleware({
-  publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
-  secretKey: process.env.CLERK_SECRET_KEY,
-  authorizedParties: corsOptions.origin,
-}))
+app.use(async (req, res, next) => {
+  const authorization = req.headers.authorization
+  if (!clerkSecretKey || !authorization?.startsWith('Bearer ')) return next()
+
+  const token = authorization.slice('Bearer '.length)
+  try {
+    const claims = await verifyToken(token, { secretKey: clerkSecretKey })
+    if (claims.sub) req.user = { id: claims.sub, email: claims.email }
+  } catch {
+    // Keep unauthenticated requests available for the guest caption limit.
+  }
+  next()
+})
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' })
 })
 
 function requireApiAuth(req, res, next) {
-  const { userId } = getAuth(req)
-  if (userId) {
+  if (req.user) {
     return next()
   }
-
-  if (res.getHeader('x-clerk-auth-reason') === 'secret-key-invalid') {
-    return res.status(503).json({
-      error: 'Authentication is misconfigured on the server. Check CLERK_SECRET_KEY in server/.env.',
-    })
-  }
-
   return res.status(401).json({ error: 'Sign in to access this service.' })
 }
 
 app.post('/api/caption', upload.single('image'), async (req, res) => {
-  const { userId } = getAuth(req)
+  const userId = req.user?.id
 
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided.' })
@@ -142,7 +143,7 @@ app.post('/api/caption', upload.single('image'), async (req, res) => {
 })
 
 app.get('/api/history', requireApiAuth, (req, res) => {
-  const { userId } = getAuth(req)
+  const userId = req.user?.id
   if (!userId) {
     return res.status(401).json({ error: 'Sign in to view caption history.' })
   }
@@ -170,7 +171,7 @@ app.get('/api/history', requireApiAuth, (req, res) => {
 })
 
 app.delete('/api/history/:id', requireApiAuth, (req, res) => {
-  const { userId } = getAuth(req)
+  const userId = req.user?.id
   if (!userId) {
     return res.status(401).json({ error: 'Sign in to delete captions from your history.' })
   }

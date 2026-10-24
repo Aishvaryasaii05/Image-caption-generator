@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-import { AuthenticateWithRedirectCallback } from '@clerk/react'
 import { useEffect, useState } from 'react'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import History from './pages/History'
+import SignIn from './pages/SignIn'
+import Account from './pages/Account'
+import SignUp from './pages/SignUp'
 
 function AppContent() {
   const location = useLocation()
@@ -37,7 +39,9 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/history" element={<History />} />
-        <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
+        <Route path="/sign-in" element={<SignIn />} />
+        <Route path="/sign-up" element={<SignUp />} />
+        <Route path="/account/*" element={<Account />} />
       </Routes>
     </div>
   )

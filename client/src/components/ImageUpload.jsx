@@ -65,7 +65,7 @@ export default function ImageUpload({ onImageSelect, selectedImage, onError, onR
             handleClick()
           }
         }}
-        className={`relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+        className={`upload-dropzone relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
           dragActive
             ? 'border-blue-500 bg-blue-950/40'
             : 'border-gray-600 bg-gray-950 hover:border-blue-500'

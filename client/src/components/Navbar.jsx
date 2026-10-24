@@ -1,9 +1,38 @@
-import { Link, useLocation } from 'react-router-dom'
-import { SignInButton, UserButton, useAuth } from '@clerk/react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useAuth } from '../lib/auth'
+
+function AccountAvatar({ user }) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const email = user?.primaryEmailAddress?.emailAddress || user?.email
+  const imageUrl = user?.imageUrl || user?.user_metadata?.avatar_url || user?.user_metadata?.picture
+  const initial = (user?.fullName || user?.firstName || email || 'A').trim().charAt(0).toUpperCase()
+
+  return (
+    <Link
+      to="/account"
+      className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-emerald-400/70 bg-emerald-500 text-sm font-semibold text-white shadow-sm"
+      title={email || 'Signed-in account'}
+      aria-label={email || 'Signed-in account'}
+      role="img"
+    >
+      {imageUrl && !imageFailed ? (
+        <img
+          src={imageUrl}
+          alt=""
+          referrerPolicy="no-referrer"
+          onError={() => setImageFailed(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : initial}
+    </Link>
+  )
+}
 
 export default function Navbar({ darkMode, toggleDarkMode }) {
   const location = useLocation()
-  const { isLoaded, isSignedIn } = useAuth()
+  const navigate = useNavigate()
+  const { isLoaded, isSignedIn, signOut, user } = useAuth()
 
   const sections = [
     { id: 'generator', label: 'Create' },
@@ -31,22 +60,24 @@ export default function Navbar({ darkMode, toggleDarkMode }) {
             History
           </Link>
           {isLoaded && (isSignedIn ? (
-            <UserButton />
-          ) : (
             <>
-              <SignInButton
-                mode="modal"
-                fallbackRedirectUrl="/"
-                signUpFallbackRedirectUrl="/"
+              <AccountAvatar user={user} />
+              <button
+                type="button"
+                onClick={signOut}
+                className="accent-button rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:text-sm"
               >
-                <button
-                  type="button"
-                  className="accent-button rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:text-sm"
-                >
-                  Sign in
-                </button>
-              </SignInButton>
+                Sign out
+              </button>
             </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate('/sign-in')}
+              className="accent-button rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:text-sm"
+            >
+              Sign in
+            </button>
           ))}
           <button
             onClick={toggleDarkMode}
