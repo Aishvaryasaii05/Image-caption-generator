@@ -96,7 +96,7 @@ npm run dev
 
 | Variable | Used by | Required | Default |
 |----------|---------|----------|---------|
-| `VITE_API_URL` | Client | No | `http://localhost:3000` |
+| `VITE_API_URL` | Client | No | Same-origin in production; `http://localhost:3000` for local split dev |
 | `VITE_CLERK_PUBLISHABLE_KEY` | Client | Yes | — |
 | `GROQ_API_KEY` | Server | Yes | — |
 | `GROQ_MODEL` | Server | No | `qwen/qwen3.8-27b` |
@@ -107,19 +107,17 @@ npm run dev
 
 ## Deployment
 
-### Frontend (Netlify)
+### Combined deployment (Render)
 
-1. Connect the repository to Netlify.
-2. Use the root `netlify.toml` configuration.
-3. Set `VITE_API_URL` to the deployed backend URL.
-4. Set `VITE_CLERK_PUBLISHABLE_KEY`.
+The Render blueprint builds the React client and serves it from the Node/Express server, so one Render URL hosts both the website and the API.
 
-### Backend (Render)
+1. Create a Render Web Service from this repository using `render.yaml`.
+2. Use the repository root as the service root, `npm install && npm run build` as the build command, and `npm start` as the start command.
+3. Set `GROQ_API_KEY` and `CLERK_SECRET_KEY` in Render. Set `DB_PATH=/var/data/captions.db` only when a persistent disk is mounted at `/var/data`; otherwise use `/tmp/captions.db`.
+4. Set `VITE_CLERK_PUBLISHABLE_KEY` in the Render environment. `VITE_API_URL` can be omitted because production API calls use the same origin.
+5. Open the generated Render URL. The API health check is available at `/api/health`.
 
-1. Create Web Service
-2. Set `CLERK_SECRET_KEY`, `GROQ_API_KEY`, and `FRONTEND_URL`
-3. Attach persistent disk for SQLite data
-4. Set `DB_PATH` to disk mount path (e.g., `/var/data/captions.db`)
+Netlify remains supported for a separate frontend deployment, but it is not required for the combined Render deployment.
 
 ## Security Notes
 

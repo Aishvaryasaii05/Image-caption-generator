@@ -5,7 +5,7 @@ import ImageUpload from '../components/ImageUpload'
 import CaptionForm from '../components/CaptionForm'
 import CaptionResult from '../components/CaptionResult'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API_URL = import.meta.env.VITE_API_URL || ''
 const AUDIENCE_IMAGE_FALLBACK = '/images/audiences/small-business-owners.jpg'
 
 const AUDIENCE_SEGMENTS = [

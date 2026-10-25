@@ -2,8 +2,7 @@ services:
   - type: web
     name: image-caption-generator-api
     runtime: node
-    rootDir: server
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: npm start
     autoDeploy: true
     envVars:
@@ -12,6 +11,8 @@ services:
       - key: GROQ_MODEL
         value: qwen/qwen3.8-27b
       - key: CLERK_SECRET_KEY
+        sync: false
+      - key: VITE_CLERK_PUBLISHABLE_KEY
         sync: false
       - key: FRONTEND_URL
         sync: false

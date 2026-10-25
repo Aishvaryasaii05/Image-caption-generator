@@ -9,6 +9,7 @@ import { initDatabase } from './database.js'
 import { generateCaption } from './ai.js'
 
 const serverDirectory = dirname(fileURLToPath(import.meta.url))
+const clientDistDirectory = join(serverDirectory, '..', 'client', 'dist')
 dotenv.config({ path: join(serverDirectory, '.env') })
 
 const clerkSecretKey = process.env.CLERK_SECRET_KEY
@@ -193,6 +194,15 @@ app.delete('/api/history/:id', requireApiAuth, (req, res) => {
     console.error('Error deleting caption:', error)
     res.status(500).json({ error: 'Failed to delete caption' })
   }
+})
+
+// Serve the built React client from the same Render service as the API.
+app.use(express.static(clientDistDirectory))
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next()
+  res.sendFile(join(clientDistDirectory, 'index.html'), (error) => {
+    if (error) next(error)
+  })
 })
 
 // Error handling middleware
